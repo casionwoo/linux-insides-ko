@@ -227,21 +227,22 @@ while (type->cnt + nr_new > type->max)
 	}
 ```
 
-Since we set `insert` to `true` in the first step, now `memblock_insert_region` will be called. `memblock_insert_region` has almost the same implementation that we saw when we inserted a new region to the empty `memblock_type` (see above). This function gets the last memory region:
+`insert`를 `true`로 첫 번재 단계에서 변경해주었기 때문에, `memblock_insert_region`함수는 호출될 것입니다. `memblock_insert_region`함수는 위에서 설명했던 비어 있는 `memblock_type`에 새로운 메모리 영역을 추가하는 것과 매우 유사하게 구현되어 있습니다. (위 코드들을 참조)
+이 함수는 마지막 메모리 영역을 얻어 냅니다:
 
 ```C
 struct memblock_region *rgn = &type->regions[idx];
 ```
 
-and copies the memory area with `memmove`:
+그리고 `memmove`함수로 메모리를 복사합니다:
 
 ```C
 memmove(rgn + 1, rgn, (type->cnt - idx) * sizeof(*rgn));
 ```
 
-After this fills `memblock_region` fields of the new memory region base, size, etc. and increases size of the `memblock_type`. In the end of the execution, `memblock_add_range` calls `memblock_merge_regions` which merges neighboring compatible regions in the second step.
+그 후에는 `memblock_region`함수로 새로운 메모리 영역의 시작주소, 크기 등을 체웁니다. 그리고 `memblock_type`의 크기를 증가시킵니다. 수행의 마지막에는 `memblock_add_range`함수는 두 번째 단계에 해당하는 근접한 메모리들을 합치는 `memblock_merge_regions`함수를 호출합니다.
 
-In the second case the new memory region can overlap already stored regions. For example we already have `region1` in the `memblock`:
+두 번째 단계에서 새로운 메모리 영역은 다른 기존의 영역과 겹쳐질 수 있습니다. 예를 들어 `memblock`에 `region1`영역이 존재하고 있었다고 한다면:
 
 ```
 0                    0x1000
@@ -253,8 +254,7 @@ In the second case the new memory region can overlap already stored regions. For
 |                       |
 +-----------------------+
 ```
-
-And now we want to add `region2` to the `memblock` with the following base address and size:
+`memblock`에 아래와 같은 `region2`를 추가하려한다고 해보겠습니다.
 
 ```
 0x100                 0x2000
@@ -266,14 +266,13 @@ And now we want to add `region2` to the `memblock` with the following base addre
 |                       |
 +-----------------------+
 ```
-
-In this case set the base address of the new memory region as the end address of the overlapped region with:
+이런 경우, 새로운 메모리 영역의 시작주소를 인접하는 영역의 끝 주소로 설정합니다:
 
 ```C
 base = min(rend, end);
 ```
 
-So it will be `0x1000` in our case. And insert it as we did it already in the second step with:
+그래서 우리의 경우 `0x1000`번지가 새로운 메모리 영역의 시작주소가 됩니다. 그리고 두 번째 단계에서 우리가 했던 것처럼 추가해줍니다:
 
 ```
 if (base < end) {
